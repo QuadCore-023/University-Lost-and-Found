@@ -62,31 +62,33 @@ export function useLostItems() {
       if (item.id === id) {
         // Add the new claim ticket without removing previous ones
         const newClaims = [...(item.claims || []), { studentNumber, claimTime: timeString }];
-        return { ...item, status: 'pending', claims: newClaims };
+        return { ...item, status: 'pending' as const, claims: newClaims };
       }
       return item;
     });
-    saveItems(updated);
+    // Explicitly cast to Item[] to satisfy strict TypeScript compilers
+    saveItems(updated as Item[]);
   };
 
   const resolveClaim = (id: string, action: 'accept' | 'reject', adminUsername: string, targetStudent: string) => {
     const updated = items.map(item => {
       if (item.id === id) {
         if (action === 'accept') {
-          return { ...item, status: 'claimed', processedByAdmin: adminUsername, acceptedClaimer: targetStudent };
+          return { ...item, status: 'claimed' as const, processedByAdmin: adminUsername, acceptedClaimer: targetStudent };
         } else {
           // Reject: Remove ONLY this specific student's ticket
           const remainingClaims = (item.claims || []).filter(c => c.studentNumber !== targetStudent);
           return {
             ...item,
             claims: remainingClaims,
-            status: remainingClaims.length > 0 ? 'pending' : 'active'
+            status: (remainingClaims.length > 0 ? 'pending' : 'active') as 'pending' | 'active'
           };
         }
       }
       return item;
     });
-    saveItems(updated);
+    // Explicitly cast to Item[] to satisfy strict TypeScript compilers
+    saveItems(updated as Item[]);
   };
 
   return { items, addItem, editItem, requestClaim, resolveClaim, isLoaded };
