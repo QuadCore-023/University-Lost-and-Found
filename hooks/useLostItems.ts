@@ -22,26 +22,74 @@ export type Item = {
   processedByAdmin?: string;
 };
 
+// ------------------------------------------------------------------
+// IndexedDB Helper Functions
+// ------------------------------------------------------------------
+const DB_NAME = 'UniversityLostFoundDB';
+const STORE_NAME = 'itemsStore';
+
+const initDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    // Ensure this only runs in the browser, not on Next.js server
+    if (typeof window === 'undefined') return reject("Server side");
+    
+    const request = indexedDB.open(DB_NAME, 1);
+    
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(STORE_NAME)) {
+        request.result.createObjectStore(STORE_NAME);
+      }
+    };
+    
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+const saveToIndexedDB = async (items: Item[]) => {
+  try {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(items, 'allItems');
+  } catch (error) {
+    console.error("IndexedDB Save Error:", error);
+  }
+};
+
+const loadFromIndexedDB = async (): Promise<Item[]> => {
+  try {
+    const db = await initDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get('allItems');
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  } catch (error) {
+    console.error("IndexedDB Load Error:", error);
+    return [];
+  }
+};
+
+// ------------------------------------------------------------------
+// Main Hook
+// ------------------------------------------------------------------
 export function useLostItems() {
   const [items, setItems] = useState<Item[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('tcuLostItems');
-    if (stored) {
-      setItems(JSON.parse(stored));
-    }
-    setIsLoaded(true);
+    const loadData = async () => {
+      const storedItems = await loadFromIndexedDB();
+      setItems(storedItems);
+      setIsLoaded(true);
+    };
+    loadData();
   }, []);
 
   const saveItems = (newItems: Item[]) => {
-    try {
-      setItems(newItems);
-      localStorage.setItem('tcuLostItems', JSON.stringify(newItems));
-    } catch (error) {
-      console.error(error);
-      alert("Storage Error: LocalStorage is full. Please delete some old items first.");
-    }
+    setItems(newItems);
+    saveToIndexedDB(newItems); // Using the massive capacity of IndexedDB
   };
 
   const addItem = (item: Omit<Item, 'id' | 'status'>) => {
@@ -60,13 +108,11 @@ export function useLostItems() {
     
     const updated = items.map(item => {
       if (item.id === id) {
-        // Add the new claim ticket without removing previous ones
         const newClaims = [...(item.claims || []), { studentNumber, claimTime: timeString }];
         return { ...item, status: 'pending' as const, claims: newClaims };
       }
       return item;
     });
-    // Explicitly cast to Item[] to satisfy strict TypeScript compilers
     saveItems(updated as Item[]);
   };
 
@@ -76,7 +122,6 @@ export function useLostItems() {
         if (action === 'accept') {
           return { ...item, status: 'claimed' as const, processedByAdmin: adminUsername, acceptedClaimer: targetStudent };
         } else {
-          // Reject: Remove ONLY this specific student's ticket
           const remainingClaims = (item.claims || []).filter(c => c.studentNumber !== targetStudent);
           return {
             ...item,
@@ -87,7 +132,6 @@ export function useLostItems() {
       }
       return item;
     });
-    // Explicitly cast to Item[] to satisfy strict TypeScript compilers
     saveItems(updated as Item[]);
   };
 
