@@ -9,10 +9,26 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false);
   const [studentNumber, setStudentNumber] = useState('');
 
-  if (!isLoaded) return <div className="p-8 text-center text-gray-500 h-screen flex items-center justify-center font-medium">Loading University: Lost & Found...</div>;
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCat, setFilterCat] = useState('');
 
-  // Show both active AND pending items. They all look "active" to the public.
+  if (!isLoaded) return <div className="p-8 text-center text-gray-500 h-screen flex items-center justify-center font-medium">Loading University Hub...</div>;
+
+  // Filter items logic
   const displayItems = items.filter(item => item.status !== 'claimed');
+  
+  const filteredItems = displayItems.filter(item => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch = item.name.toLowerCase().includes(query) || 
+                          item.description.toLowerCase().includes(query) ||
+                          item.locationFound.toLowerCase().includes(query);
+    // Uses .includes() so "electronics" matches "electronics-phone", "electronics-laptop", etc.
+    const matchesCat = filterCat ? item.category.includes(filterCat) : true;
+    
+    return matchesSearch && matchesCat;
+  });
+
   const claimedItems = items.filter(item => item.status === 'claimed').slice(0, 10);
 
   const handleClaim = (e: React.FormEvent) => {
@@ -29,7 +45,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-gray-50">
       <header className="bg-red-700 text-white p-4 shadow-md sticky top-0 z-40 flex items-center justify-between rounded-b-2xl">
         <div className="w-16"></div>
-        <h1 className="text-lg md:text-xl font-bold text-center flex-1 tracking-wide">University: Lost & Found</h1>
+        <h1 className="text-lg md:text-xl font-bold text-center flex-1 tracking-wide">University: Lost and Found</h1>
         <div className="flex space-x-3 w-16 justify-end">
           <button onClick={() => setShowHistory(true)} className="p-2 hover:bg-red-800 rounded-full transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -41,9 +57,48 @@ export default function Home() {
       </header>
 
       <main className="flex-1 max-w-5xl mx-auto w-full p-4 pb-12">
-        {displayItems.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 mt-4">
-            {displayItems.map(item => (
+        
+        {/* SEARCH AND FILTER BAR */}
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mt-2 mb-6 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <input 
+              type="text" 
+              placeholder="Search by name, description, or location..." 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 outline-none focus:ring-2 focus:ring-red-500 transition-all bg-gray-50 focus:bg-white" 
+            />
+          </div>
+          <select 
+            value={filterCat} 
+            onChange={(e) => setFilterCat(e.target.value)} 
+            className="w-full md:w-56 border border-gray-200 rounded-xl p-3 text-gray-900 outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 focus:bg-white cursor-pointer transition-all"
+          >
+            <option value="">All Categories</option>
+            <option value="electronics">Electronics</option>
+            <option value="container">Containers & Bottles</option>
+            <option value="docs">Documents & IDs</option>
+            <option value="access">Accessories & Keys</option>
+            <option value="clothes">Clothing</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        {/* ITEM GRID */}
+        {displayItems.length === 0 ? (
+          <div className="text-center p-12 text-gray-500 font-medium mt-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
+            No lost items are currently available to claim.
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="text-center p-12 text-gray-500 font-medium mt-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
+            No items match your search. Try different keywords.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {filteredItems.map(item => (
               <div 
                 key={item.id} 
                 onClick={() => setSelectedItem(item)}
@@ -62,10 +117,6 @@ export default function Home() {
                 </div>
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="text-center p-12 text-gray-500 font-medium mt-10 bg-white rounded-3xl border border-gray-100 shadow-sm">
-            No lost items are currently available to claim.
           </div>
         )}
       </main>
