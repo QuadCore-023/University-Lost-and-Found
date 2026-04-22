@@ -3,15 +3,32 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useLostItems, Item } from '../hooks/useLostItems';
 
+const CATEGORY_TAGS = [
+  { id: 'electronics', label: 'Electronics' },
+  { id: 'container', label: 'Containers' },
+  { id: 'docs', label: 'Documents' },
+  { id: 'access', label: 'Accessories' },
+  { id: 'clothes', label: 'Clothing' },
+  { id: 'other', label: 'Other' }
+];
+
+const COLOR_TAGS = [
+  { id: 'red', label: 'Red' }, { id: 'blue', label: 'Blue' }, { id: 'yellow', label: 'Yellow' },
+  { id: 'green', label: 'Green' }, { id: 'black', label: 'Black' }, { id: 'white', label: 'White' },
+  { id: 'gray', label: 'Gray' }, { id: 'brown', label: 'Brown' }, { id: 'silver', label: 'Silver' },
+  { id: 'gold', label: 'Gold' }, { id: 'orange', label: 'Orange' }, { id: 'violet', label: 'Violet' }
+];
+
 export default function Home() {
   const { items, requestClaim, isLoaded } = useLostItems();
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [studentNumber, setStudentNumber] = useState('');
 
-  // Search & Filter States
+  // Advanced Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterCat, setFilterCat] = useState('');
+  const [activeCategories, setActiveCategories] = useState<string[]>([]);
+  const [activeColors, setActiveColors] = useState<string[]>([]);
 
   if (!isLoaded) return <div className="p-8 text-center text-gray-500 h-screen flex items-center justify-center font-medium">Loading University Hub...</div>;
 
@@ -23,13 +40,22 @@ export default function Home() {
     const matchesSearch = item.name.toLowerCase().includes(query) || 
                           item.description.toLowerCase().includes(query) ||
                           item.locationFound.toLowerCase().includes(query);
-    // Uses .includes() so "electronics" matches "electronics-phone", "electronics-laptop", etc.
-    const matchesCat = filterCat ? item.category.includes(filterCat) : true;
     
-    return matchesSearch && matchesCat;
+    const matchesCat = activeCategories.length === 0 || activeCategories.some(cat => item.category.includes(cat));
+    const matchesColor = activeColors.length === 0 || activeColors.some(col => item.color.includes(col));
+    
+    return matchesSearch && matchesCat && matchesColor;
   });
 
   const claimedItems = items.filter(item => item.status === 'claimed').slice(0, 10);
+
+  const toggleCategory = (id: string) => {
+    setActiveCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  };
+
+  const toggleColor = (id: string) => {
+    setActiveColors(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  };
 
   const handleClaim = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,33 +84,83 @@ export default function Home() {
 
       <main className="flex-1 max-w-5xl mx-auto w-full p-4 pb-12">
         
-        {/* SEARCH AND FILTER BAR */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mt-2 mb-6 flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        {/* ADVANCED FILTERING BUCKETS */}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 mt-2 mb-6 overflow-hidden">
+          {/* Search Bar */}
+          <div className="p-4 border-b border-gray-100">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+              </div>
+              <input 
+                type="text" 
+                placeholder="Search items, descriptions, or locations..." 
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
+                className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 focus:bg-white transition-all" 
+              />
             </div>
-            <input 
-              type="text" 
-              placeholder="Search by name, description, or location..." 
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
-              className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-gray-900 outline-none focus:ring-2 focus:ring-red-500 transition-all bg-gray-50 focus:bg-white" 
-            />
           </div>
-          <select 
-            value={filterCat} 
-            onChange={(e) => setFilterCat(e.target.value)} 
-            className="w-full md:w-56 border border-gray-200 rounded-xl p-3 text-gray-900 outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 focus:bg-white cursor-pointer transition-all"
-          >
-            <option value="">All Categories</option>
-            <option value="electronics">Electronics</option>
-            <option value="container">Containers & Bottles</option>
-            <option value="docs">Documents & IDs</option>
-            <option value="access">Accessories & Keys</option>
-            <option value="clothes">Clothing</option>
-            <option value="other">Other</option>
-          </select>
+
+          <div className="p-5 flex flex-col lg:flex-row gap-6 bg-gray-50/50">
+            {/* Active Filters Container (The target bucket) */}
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                Active Filters
+              </h3>
+              <div className={`min-h-[80px] p-4 rounded-2xl border-2 border-dashed transition-colors ${activeCategories.length > 0 || activeColors.length > 0 ? 'border-red-300 bg-red-50/30' : 'border-gray-200 bg-white'}`}>
+                {activeCategories.length === 0 && activeColors.length === 0 ? (
+                  <p className="text-gray-400 text-sm text-center mt-2 italic">Click tags below to add them here</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {/* Render Active Category Tags */}
+                    {activeCategories.map(catId => {
+                      const tag = CATEGORY_TAGS.find(t => t.id === catId);
+                      return tag ? (
+                        <button key={`active-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
+                          {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                      ) : null;
+                    })}
+                    {/* Render Active Color Tags */}
+                    {activeColors.map(colId => {
+                      const tag = COLOR_TAGS.find(t => t.id === colId);
+                      return tag ? (
+                        <button key={`active-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
+                          {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Available Tags Container */}
+            <div className="flex-1 space-y-5">
+              <div>
+                <h3 className="text-sm font-bold text-gray-700 mb-3">Available Categories</h3>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORY_TAGS.filter(tag => !activeCategories.includes(tag.id)).map(tag => (
+                    <button key={`avail-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600 transition-all shadow-sm">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-700 mb-3">Available Colors</h3>
+                <div className="flex flex-wrap gap-2">
+                  {COLOR_TAGS.filter(tag => !activeColors.includes(tag.id)).map(tag => (
+                    <button key={`avail-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ITEM GRID */}
@@ -94,7 +170,7 @@ export default function Home() {
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="text-center p-12 text-gray-500 font-medium mt-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
-            No items match your search. Try different keywords.
+            No items match your active filters. Try removing some tags.
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
@@ -174,15 +250,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* History Modal - Fixed Transparent Blur Overlay */}
+      {/* History Modal */}
       {showHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 backdrop-blur-sm" 
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
-            onClick={() => setShowHistory(false)}
-          ></div>
-
+          <div className="absolute inset-0 backdrop-blur-sm" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={() => setShowHistory(false)}></div>
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl flex flex-col max-h-[80vh] relative z-10 animate-in zoom-in-95 duration-200">
             <div className="p-5 flex justify-between items-center border-b border-gray-100">
               <h3 className="font-bold text-xl text-gray-900">Recently Claimed Items</h3>
