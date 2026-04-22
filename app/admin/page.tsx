@@ -163,7 +163,7 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-red-700 flex items-center justify-center p-4">
         <form onSubmit={handleLogin} className="bg-white p-8 sm:p-10 w-full max-w-sm rounded-3xl shadow-2xl">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Taguig City University: Lost & Found Portal</h2>
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">University: Lost & Found Portal</h2>
           </div>
           
           <div className="space-y-5">

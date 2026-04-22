@@ -9,7 +9,7 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false);
   const [studentNumber, setStudentNumber] = useState('');
 
-  if (!isLoaded) return <div className="p-8 text-center text-gray-500 h-screen flex items-center justify-center font-medium">Loading Taguig City University: Lost & Found...</div>;
+  if (!isLoaded) return <div className="p-8 text-center text-gray-500 h-screen flex items-center justify-center font-medium">Loading University: Lost & Found...</div>;
 
   // Show both active AND pending items. They all look "active" to the public.
   const displayItems = items.filter(item => item.status !== 'claimed');
@@ -29,7 +29,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-gray-50">
       <header className="bg-red-700 text-white p-4 shadow-md sticky top-0 z-40 flex items-center justify-between rounded-b-2xl">
         <div className="w-16"></div>
-        <h1 className="text-lg md:text-xl font-bold text-center flex-1 tracking-wide">Taguig City University: Lost & Found</h1>
+        <h1 className="text-lg md:text-xl font-bold text-center flex-1 tracking-wide">University: Lost & Found</h1>
         <div className="flex space-x-3 w-16 justify-end">
           <button onClick={() => setShowHistory(true)} className="p-2 hover:bg-red-800 rounded-full transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
