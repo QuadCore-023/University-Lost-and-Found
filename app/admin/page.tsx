@@ -16,7 +16,8 @@ const COLOR_TAGS = [
   { id: 'red', label: 'Red' }, { id: 'blue', label: 'Blue' }, { id: 'yellow', label: 'Yellow' },
   { id: 'green', label: 'Green' }, { id: 'black', label: 'Black' }, { id: 'white', label: 'White' },
   { id: 'gray', label: 'Gray' }, { id: 'brown', label: 'Brown' }, { id: 'silver', label: 'Silver' },
-  { id: 'gold', label: 'Gold' }, { id: 'orange', label: 'Orange' }, { id: 'violet', label: 'Violet' }
+  { id: 'gold', label: 'Gold' }, { id: 'orange', label: 'Orange' }, { id: 'violet', label: 'Violet' },
+  { id: 'multi', label: 'Multi-Color' }
 ];
 
 export default function AdminDashboard() {
@@ -32,10 +33,20 @@ export default function AdminDashboard() {
 
   const [photos, setPhotos] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategories, setActiveCategories] = useState<string[]>([]);
-  const [activeColors, setActiveColors] = useState<string[]>([]);
   const [currentTime, setCurrentTime] = useState('');
   
+  // Advanced Filter States (Inventory Tab)
+  const [activeCategories, setActiveCategories] = useState<string[]>([]);
+  const [activeColors, setActiveColors] = useState<string[]>([]);
+  const [showCategoryFilters, setShowCategoryFilters] = useState(false);
+  const [showColorFilters, setShowColorFilters] = useState(false);
+
+  // Form Input States (Replacing Select Dropdowns)
+  const [addCategory, setAddCategory] = useState('');
+  const [addColor, setAddColor] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editColor, setEditColor] = useState('');
+
   // Pending Modal States
   const [selectedPendingItem, setSelectedPendingItem] = useState<Item | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<ClaimTicket | null>(null);
@@ -156,6 +167,11 @@ export default function AdminDashboard() {
 
   const handleAddItem = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!addCategory || !addColor) {
+      alert("Please select both a Category and a Color tag.");
+      return;
+    }
+
     const fd = new FormData(e.currentTarget);
     addItem({
       name: fd.get('name') as string,
@@ -163,12 +179,14 @@ export default function AdminDashboard() {
       locationFound: fd.get('locationFound') as string,
       dateFound: fd.get('dateFound') as string,
       timeFound: fd.get('timeFound') as string,
-      category: fd.get('category') as string,
-      color: fd.get('color') as string,
+      category: addCategory, // Passed from state pill
+      color: addColor,       // Passed from state pill
       photos: photos
     });
     alert('Item added successfully!');
     e.currentTarget.reset();
+    setAddCategory('');
+    setAddColor('');
     setPhotos([]);
     setActiveTab('current');
   };
@@ -183,14 +201,13 @@ export default function AdminDashboard() {
       locationFound: fd.get('locationFound') as string,
       dateFound: fd.get('dateFound') as string,
       timeFound: fd.get('timeFound') as string,
-      category: fd.get('category') as string,
-      color: fd.get('color') as string,
+      category: editCategory, // Passed from state pill
+      color: editColor,       // Passed from state pill
     });
     alert('Item updated successfully!');
     setEditingItem(null);
   };
 
-  // Helper to switch tabs and close mobile menu
   const navigateToTab = (tab: 'add'|'current'|'pending'|'history') => {
     setActiveTab(tab);
     setIsMobileMenuOpen(false);
@@ -232,15 +249,15 @@ export default function AdminDashboard() {
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-50 overflow-hidden font-sans">
       
-      {/* MOBILE TOP NAVIGATION BAR */}
-      <div className="md:hidden bg-red-800 text-white p-4 flex items-center justify-between shadow-md z-30">
-        <h1 className="text-lg font-bold tracking-wide">Admin Dashboard</h1>
+      {/* MOBILE TOP NAVIGATION BAR (Hamburger on Left) */}
+      <div className="md:hidden bg-red-800 text-white p-4 flex items-center shadow-md z-30 gap-4">
         <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 hover:bg-red-700 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-400">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
+        <h1 className="text-lg font-bold tracking-wide">Admin Dashboard</h1>
       </div>
 
-      {/* MOBILE OVERLAY (Darkens background when menu is open) */}
+      {/* MOBILE OVERLAY */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm transition-opacity"
@@ -258,7 +275,6 @@ export default function AdminDashboard() {
               <p className="text-xs text-red-200 font-medium">Admin Active</p>
             </div>
           </div>
-          {/* Close button for mobile only */}
           <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-red-200 hover:text-white p-1">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
@@ -313,56 +329,41 @@ export default function AdminDashboard() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                   <textarea required name="description" className="w-full border border-gray-300 rounded-xl p-3 text-gray-900 outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500" rows={4}></textarea>
                 </div>
-                <div>
+                
+                {/* NEW FORM PILLS FOR CATEGORY */}
+                <div className="col-span-1 md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
-                  <select required name="category" className="w-full border border-gray-300 rounded-xl p-3 text-gray-900 outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white">
-                    <option value="">Select Category...</option>
-                    <option value="electronics-phone">Mobile Phone</option>
-                    <option value="electronics-laptop">Laptop / Tablet</option>
-                    <option value="electronics-other">Other Electronics</option>
-                    <option value="container-plastic">Plastic Tumbler</option>
-                    <option value="container-metal">Metal Flask</option>
-                    <option value="docs-id">School ID / License</option>
-                    <option value="docs-notebook">Notebook / Book</option>
-                    <option value="access-wallet">Wallet / Purse</option>
-                    <option value="access-keys">Keys</option>
-                    <option value="clothes-jacket">Jacket / Uniform</option>
-                    <option value="other">Other / Misc</option>
-                  </select>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORY_TAGS.map(tag => (
+                      <button 
+                        type="button" 
+                        key={`add-cat-${tag.id}`} 
+                        onClick={() => setAddCategory(tag.id)} 
+                        className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border ${addCategory === tag.id ? 'bg-red-600 text-white border-red-600 shadow-md' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50'}`}
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div>
+
+                {/* NEW FORM PILLS FOR COLOR */}
+                <div className="col-span-1 md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Color</label>
-                  <select required name="color" className="w-full border border-gray-300 rounded-xl p-3 text-gray-900 outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white">
-                    <option value="">Select Color...</option>
-                    <optgroup label="Primary Colors">
-                      <option value="red">Red</option>
-                      <option value="yellow">Yellow</option>
-                      <option value="blue">Blue</option>
-                    </optgroup>
-                    <optgroup label="Secondary Colors">
-                      <option value="orange">Orange</option>
-                      <option value="green">Green</option>
-                      <option value="violet">Violet</option>
-                    </optgroup>
-                    <optgroup label="Tertiary Colors">
-                      <option value="red-orange">Red-Orange</option>
-                      <option value="yellow-orange">Yellow-Orange</option>
-                      <option value="yellow-green">Yellow-Green</option>
-                      <option value="blue-green">Blue-Green</option>
-                      <option value="blue-violet">Blue-Violet</option>
-                      <option value="red-violet">Red-Violet</option>
-                    </optgroup>
-                    <optgroup label="Neutrals & Others">
-                      <option value="black">Black</option>
-                      <option value="white">White</option>
-                      <option value="gray">Gray</option>
-                      <option value="brown">Brown</option>
-                      <option value="silver">Silver</option>
-                      <option value="gold">Gold</option>
-                      <option value="multi">Multi-Color / Patterned</option>
-                    </optgroup>
-                  </select>
+                  <div className="flex flex-wrap gap-2">
+                    {COLOR_TAGS.map(tag => (
+                      <button 
+                        type="button" 
+                        key={`add-col-${tag.id}`} 
+                        onClick={() => setAddColor(tag.id)} 
+                        className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border ${addColor === tag.id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50'}`}
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
                 <div className="col-span-1 md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Location Found</label>
                   <input required name="locationFound" type="text" className="w-full border border-gray-300 rounded-xl p-3 text-gray-900 outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500" />
@@ -406,60 +407,88 @@ export default function AdminDashboard() {
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 focus:bg-white" 
                 />
               </div>
-              <div className="p-5 flex flex-col lg:flex-row gap-6 bg-gray-50/50">
-                {/* Active Filters */}
-                <div className="flex-1">
-                  <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-                    Active Filters
-                  </h3>
-                  <div className={`min-h-[80px] p-4 rounded-2xl border-2 border-dashed transition-colors ${activeCategories.length > 0 || activeColors.length > 0 ? 'border-red-300 bg-red-50/30' : 'border-gray-200 bg-white'}`}>
-                    {activeCategories.length === 0 && activeColors.length === 0 ? (
-                      <p className="text-gray-400 text-sm text-center mt-2 italic">Click tags below to apply filters</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {activeCategories.map(catId => {
-                          const tag = CATEGORY_TAGS.find(t => t.id === catId);
-                          return tag ? (
-                            <button key={`admin-act-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
-                              {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                          ) : null;
-                        })}
-                        {activeColors.map(colId => {
-                          const tag = COLOR_TAGS.find(t => t.id === colId);
-                          return tag ? (
-                            <button key={`admin-act-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
-                              {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                          ) : null;
-                        })}
-                      </div>
-                    )}
-                  </div>
+              
+              <div className="p-5 flex flex-col gap-6 bg-gray-50/50">
+                {/* Filter Toggle Buttons */}
+                <div className="flex flex-wrap gap-3">
+                  <button 
+                    onClick={() => setShowCategoryFilters(!showCategoryFilters)} 
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${showCategoryFilters || activeCategories.length > 0 ? 'bg-red-100 text-red-800 border-red-200' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                  >
+                    Filter by Category {activeCategories.length > 0 && `(${activeCategories.length})`}
+                  </button>
+                  <button 
+                    onClick={() => setShowColorFilters(!showColorFilters)} 
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${showColorFilters || activeColors.length > 0 ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                  >
+                    Filter by Color {activeColors.length > 0 && `(${activeColors.length})`}
+                  </button>
                 </div>
 
-                {/* Available Tags */}
-                <div className="flex-1 space-y-5">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-700 mb-3">Categories</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {CATEGORY_TAGS.filter(tag => !activeCategories.includes(tag.id)).map(tag => (
-                        <button key={`admin-av-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600 transition-all shadow-sm">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
-                        </button>
-                      ))}
+                <div className="flex flex-col lg:flex-row gap-6">
+                  {/* Active Filters Container */}
+                  {(activeCategories.length > 0 || activeColors.length > 0) && (
+                    <div className="flex-1 animate-in slide-in-from-top-2 duration-300">
+                      <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                        Active Filters
+                      </h3>
+                      <div className="min-h-[60px] p-4 rounded-2xl border-2 border-dashed border-red-300 bg-red-50/30 transition-colors">
+                        <div className="flex flex-wrap gap-2">
+                          {activeCategories.map(catId => {
+                            const tag = CATEGORY_TAGS.find(t => t.id === catId);
+                            return tag ? (
+                              <button key={`admin-act-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
+                                {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                              </button>
+                            ) : null;
+                          })}
+                          {activeColors.map(colId => {
+                            const tag = COLOR_TAGS.find(t => t.id === colId);
+                            return tag ? (
+                              <button key={`admin-act-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
+                                {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                              </button>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-700 mb-3">Colors</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {COLOR_TAGS.filter(tag => !activeColors.includes(tag.id)).map(tag => (
-                        <button key={`admin-av-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm">
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
-                        </button>
-                      ))}
-                    </div>
+                  )}
+
+                  {/* Available Tags Container */}
+                  <div className="flex-1 space-y-5">
+                    {showCategoryFilters && (
+                      <div className="animate-in slide-in-from-top-2 duration-300">
+                        <h3 className="text-sm font-bold text-gray-700 mb-3">Categories</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {CATEGORY_TAGS.filter(tag => !activeCategories.includes(tag.id)).map(tag => (
+                            <button key={`admin-av-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600 transition-all shadow-sm">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
+                            </button>
+                          ))}
+                          {CATEGORY_TAGS.filter(tag => !activeCategories.includes(tag.id)).length === 0 && (
+                            <span className="text-sm text-gray-400 italic py-1.5">All categories selected</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {showColorFilters && (
+                      <div className="animate-in slide-in-from-top-2 duration-300">
+                        <h3 className="text-sm font-bold text-gray-700 mb-3">Colors</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {COLOR_TAGS.filter(tag => !activeColors.includes(tag.id)).map(tag => (
+                            <button key={`admin-av-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
+                            </button>
+                          ))}
+                          {COLOR_TAGS.filter(tag => !activeColors.includes(tag.id)).length === 0 && (
+                            <span className="text-sm text-gray-400 italic py-1.5">All colors selected</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -468,7 +497,11 @@ export default function AdminDashboard() {
             {/* Inventory Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {processedCurrentItems.map(item => (
-                <div key={item.id} onClick={() => setEditingItem(item)} className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
+                <div key={item.id} onClick={() => {
+                  setEditingItem(item);
+                  setEditCategory(item.category);
+                  setEditColor(item.color);
+                }} className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
                   {item.status === 'pending' && (
                     <div className="absolute top-0 right-0 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-bl-xl shadow-sm">
                       Pending ({item.claims?.length || 0})
@@ -593,7 +626,7 @@ export default function AdminDashboard() {
               </button>
             </div>
             <div className="p-4 md:p-6">
-              <form onSubmit={handleEditItemSubmit} className="space-y-4">
+              <form onSubmit={handleEditItemSubmit} className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Item Name</label>
                   <input required name="name" type="text" defaultValue={editingItem.name} className="w-full border rounded-xl p-3 text-gray-900 outline-none focus:border-red-500" />
@@ -602,57 +635,42 @@ export default function AdminDashboard() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
                   <textarea required name="description" defaultValue={editingItem.description} className="w-full border rounded-xl p-3 text-gray-900 outline-none focus:border-red-500" rows={3}></textarea>
                 </div>
+                
+                {/* EDIT FORM PILLS FOR CATEGORY */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORY_TAGS.map(tag => (
+                      <button 
+                        type="button" 
+                        key={`edit-cat-${tag.id}`} 
+                        onClick={() => setEditCategory(tag.id)} 
+                        className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all border ${editCategory === tag.id ? 'bg-red-600 text-white border-red-600 shadow-md' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50'}`}
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* EDIT FORM PILLS FOR COLOR */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Color</label>
+                  <div className="flex flex-wrap gap-2">
+                    {COLOR_TAGS.map(tag => (
+                      <button 
+                        type="button" 
+                        key={`edit-col-${tag.id}`} 
+                        onClick={() => setEditColor(tag.id)} 
+                        className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all border ${editColor === tag.id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-blue-300 hover:bg-blue-50'}`}
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Category</label>
-                    <select required name="category" defaultValue={editingItem.category} className="w-full border border-gray-300 rounded-xl p-3 text-gray-900 outline-none focus:ring-2 focus:ring-red-500 bg-white">
-                      <option value="">Select Category...</option>
-                      <option value="electronics-phone">Mobile Phone</option>
-                      <option value="electronics-laptop">Laptop / Tablet</option>
-                      <option value="electronics-other">Other Electronics</option>
-                      <option value="container-plastic">Plastic Tumbler</option>
-                      <option value="container-metal">Metal Flask</option>
-                      <option value="docs-id">School ID / License</option>
-                      <option value="docs-notebook">Notebook / Book</option>
-                      <option value="access-wallet">Wallet / Purse</option>
-                      <option value="access-keys">Keys</option>
-                      <option value="clothes-jacket">Jacket / Uniform</option>
-                      <option value="other">Other / Misc</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Color</label>
-                    <select required name="color" defaultValue={editingItem.color} className="w-full border border-gray-300 rounded-xl p-3 text-gray-900 outline-none focus:ring-2 focus:ring-red-500 bg-white">
-                      <option value="">Select Color...</option>
-                      <optgroup label="Primary Colors">
-                        <option value="red">Red</option>
-                        <option value="yellow">Yellow</option>
-                        <option value="blue">Blue</option>
-                      </optgroup>
-                      <optgroup label="Secondary Colors">
-                        <option value="orange">Orange</option>
-                        <option value="green">Green</option>
-                        <option value="violet">Violet</option>
-                      </optgroup>
-                      <optgroup label="Tertiary Colors">
-                        <option value="red-orange">Red-Orange</option>
-                        <option value="yellow-orange">Yellow-Orange</option>
-                        <option value="yellow-green">Yellow-Green</option>
-                        <option value="blue-green">Blue-Green</option>
-                        <option value="blue-violet">Blue-Violet</option>
-                        <option value="red-violet">Red-Violet</option>
-                      </optgroup>
-                      <optgroup label="Neutrals & Others">
-                        <option value="black">Black</option>
-                        <option value="white">White</option>
-                        <option value="gray">Gray</option>
-                        <option value="brown">Brown</option>
-                        <option value="silver">Silver</option>
-                        <option value="gold">Gold</option>
-                        <option value="multi">Multi-Color / Patterned</option>
-                      </optgroup>
-                    </select>
-                  </div>
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Location Found</label>
                     <input required name="locationFound" type="text" defaultValue={editingItem.locationFound} className="w-full border rounded-xl p-3 text-gray-900 outline-none focus:border-red-500" />
@@ -666,7 +684,7 @@ export default function AdminDashboard() {
                     <input required name="timeFound" type="time" defaultValue={editingItem.timeFound} className="w-full border rounded-xl p-3 text-gray-900 outline-none focus:border-red-500" />
                   </div>
                 </div>
-                <button type="submit" className="w-full bg-red-700 text-white font-bold py-3.5 rounded-xl hover:bg-red-800 mt-4">Save Changes</button>
+                <button type="submit" className="w-full bg-red-700 text-white font-bold py-3.5 rounded-xl hover:bg-red-800 mt-4 shadow-sm">Save Changes</button>
               </form>
             </div>
           </div>

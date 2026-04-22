@@ -16,7 +16,8 @@ const COLOR_TAGS = [
   { id: 'red', label: 'Red' }, { id: 'blue', label: 'Blue' }, { id: 'yellow', label: 'Yellow' },
   { id: 'green', label: 'Green' }, { id: 'black', label: 'Black' }, { id: 'white', label: 'White' },
   { id: 'gray', label: 'Gray' }, { id: 'brown', label: 'Brown' }, { id: 'silver', label: 'Silver' },
-  { id: 'gold', label: 'Gold' }, { id: 'orange', label: 'Orange' }, { id: 'violet', label: 'Violet' }
+  { id: 'gold', label: 'Gold' }, { id: 'orange', label: 'Orange' }, { id: 'violet', label: 'Violet' },
+  { id: 'multi', label: 'Multi-Color' }
 ];
 
 export default function Home() {
@@ -29,6 +30,10 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategories, setActiveCategories] = useState<string[]>([]);
   const [activeColors, setActiveColors] = useState<string[]>([]);
+  
+  // Toggle visibility of filter containers
+  const [showCategoryFilters, setShowCategoryFilters] = useState(false);
+  const [showColorFilters, setShowColorFilters] = useState(false);
 
   if (!isLoaded) return <div className="p-8 text-center text-gray-500 h-screen flex items-center justify-center font-medium">Loading University Hub...</div>;
 
@@ -102,62 +107,89 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="p-5 flex flex-col lg:flex-row gap-6 bg-gray-50/50">
-            {/* Active Filters Container (The target bucket) */}
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
-                Active Filters
-              </h3>
-              <div className={`min-h-[80px] p-4 rounded-2xl border-2 border-dashed transition-colors ${activeCategories.length > 0 || activeColors.length > 0 ? 'border-red-300 bg-red-50/30' : 'border-gray-200 bg-white'}`}>
-                {activeCategories.length === 0 && activeColors.length === 0 ? (
-                  <p className="text-gray-400 text-sm text-center mt-2 italic">Click tags below to add them here</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {/* Render Active Category Tags */}
-                    {activeCategories.map(catId => {
-                      const tag = CATEGORY_TAGS.find(t => t.id === catId);
-                      return tag ? (
-                        <button key={`active-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
-                          {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
-                      ) : null;
-                    })}
-                    {/* Render Active Color Tags */}
-                    {activeColors.map(colId => {
-                      const tag = COLOR_TAGS.find(t => t.id === colId);
-                      return tag ? (
-                        <button key={`active-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
-                          {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-              </div>
+          <div className="p-5 flex flex-col gap-6 bg-gray-50/50">
+            {/* Filter Toggle Buttons */}
+            <div className="flex flex-wrap gap-3">
+              <button 
+                onClick={() => setShowCategoryFilters(!showCategoryFilters)} 
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${showCategoryFilters || activeCategories.length > 0 ? 'bg-red-100 text-red-800 border-red-200' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+              >
+                Filter by Category {activeCategories.length > 0 && `(${activeCategories.length})`}
+              </button>
+              <button 
+                onClick={() => setShowColorFilters(!showColorFilters)} 
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${showColorFilters || activeColors.length > 0 ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+              >
+                Filter by Color {activeColors.length > 0 && `(${activeColors.length})`}
+              </button>
             </div>
 
-            {/* Available Tags Container */}
-            <div className="flex-1 space-y-5">
-              <div>
-                <h3 className="text-sm font-bold text-gray-700 mb-3">Available Categories</h3>
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORY_TAGS.filter(tag => !activeCategories.includes(tag.id)).map(tag => (
-                    <button key={`avail-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600 transition-all shadow-sm">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
-                    </button>
-                  ))}
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Active Filters Container (The target bucket) */}
+              {(activeCategories.length > 0 || activeColors.length > 0) && (
+                <div className="flex-1 animate-in slide-in-from-top-2 duration-300">
+                  <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                    Active Filters
+                  </h3>
+                  <div className="min-h-[60px] p-4 rounded-2xl border-2 border-dashed border-red-300 bg-red-50/30 transition-colors">
+                    <div className="flex flex-wrap gap-2">
+                      {/* Render Active Category Tags */}
+                      {activeCategories.map(catId => {
+                        const tag = CATEGORY_TAGS.find(t => t.id === catId);
+                        return tag ? (
+                          <button key={`active-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
+                            {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                          </button>
+                        ) : null;
+                      })}
+                      {/* Render Active Color Tags */}
+                      {activeColors.map(colId => {
+                        const tag = COLOR_TAGS.find(t => t.id === colId);
+                        return tag ? (
+                          <button key={`active-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors shadow-sm animate-in zoom-in-95 duration-200">
+                            {tag.label} <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                          </button>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-gray-700 mb-3">Available Colors</h3>
-                <div className="flex flex-wrap gap-2">
-                  {COLOR_TAGS.filter(tag => !activeColors.includes(tag.id)).map(tag => (
-                    <button key={`avail-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
-                    </button>
-                  ))}
-                </div>
+              )}
+
+              {/* Available Tags Container */}
+              <div className="flex-1 space-y-5">
+                {showCategoryFilters && (
+                  <div className="animate-in slide-in-from-top-2 duration-300">
+                    <h3 className="text-sm font-bold text-gray-700 mb-3">Available Categories</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORY_TAGS.filter(tag => !activeCategories.includes(tag.id)).map(tag => (
+                        <button key={`avail-cat-${tag.id}`} onClick={() => toggleCategory(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600 transition-all shadow-sm">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
+                        </button>
+                      ))}
+                      {CATEGORY_TAGS.filter(tag => !activeCategories.includes(tag.id)).length === 0 && (
+                        <span className="text-sm text-gray-400 italic py-1.5">All categories selected</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {showColorFilters && (
+                  <div className="animate-in slide-in-from-top-2 duration-300">
+                    <h3 className="text-sm font-bold text-gray-700 mb-3">Available Colors</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {COLOR_TAGS.filter(tag => !activeColors.includes(tag.id)).map(tag => (
+                        <button key={`avail-col-${tag.id}`} onClick={() => toggleColor(tag.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg> {tag.label}
+                        </button>
+                      ))}
+                      {COLOR_TAGS.filter(tag => !activeColors.includes(tag.id)).length === 0 && (
+                        <span className="text-sm text-gray-400 italic py-1.5">All colors selected</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -197,7 +229,7 @@ export default function Home() {
         )}
       </main>
 
-      {/* Item Details Modal - Fixed Transparent Blur Overlay */}
+      {/* Item Details Modal */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
@@ -224,8 +256,8 @@ export default function Home() {
               <div className="text-sm text-gray-700 space-y-3 font-medium bg-gray-50 p-4 rounded-2xl">
                 <p><span className="text-gray-500 block text-xs">Description</span> {selectedItem.description}</p>
                 <div className="grid grid-cols-2 gap-4">
-                  <p><span className="text-gray-500 block text-xs">Category</span> <span className="capitalize">{selectedItem.category.replace('-', ' ')}</span></p>
-                  <p><span className="text-gray-500 block text-xs">Color</span> <span className="capitalize">{selectedItem.color}</span></p>
+                  <p><span className="text-gray-500 block text-xs">Category</span> <span className="capitalize">{CATEGORY_TAGS.find(t => t.id === selectedItem.category)?.label || selectedItem.category}</span></p>
+                  <p><span className="text-gray-500 block text-xs">Color</span> <span className="capitalize">{COLOR_TAGS.find(t => t.id === selectedItem.color)?.label || selectedItem.color}</span></p>
                   <p><span className="text-gray-500 block text-xs">Location</span> {selectedItem.locationFound}</p>
                   <p><span className="text-gray-500 block text-xs">Date & Time</span> {selectedItem.dateFound} @ {selectedItem.timeFound}</p>
                 </div>
